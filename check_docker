@@ -1,0 +1,114 @@
+#!/bin/bash
+
+# TODO
+# - check response code 200/500
+# - check id is has root permission
+# - return data as performance data
+
+STATE_OK=0
+STATE_WARNING=1
+STATE_CRITICAL=2
+STATE_UNKNOWN=3
+
+PROGNAME=`/usr/bin/basename $0`
+PROGPATH=`echo $0 | sed -e 's,[\\/][^\\/][^\\/]*$,,'`
+REVISION="0.0.1"
+
+NC="/bin/nc"
+
+print_usage() {
+    echo "Usage: $PROGNAME [-H|--host <host>] [-p|--port <port>]"
+    echo "Usage: $PROGNAME [-f <socket_file>]"
+    echo "Usage: $PROGNAME [-h|--help] [-?] [-V|--version]"
+    echo
+}
+
+print_help() {
+    echo $PROGNAME $REVISION
+    echo
+    print_usage
+    echo
+    echo Docker plugin for Nagios
+    echo
+}
+
+# defaults
+NC_OPTS="-U /var/run/docker.sock"
+PORT=4243
+HOST="localhost"
+
+while test -n "$1"; do
+    case "$1" in
+        # -V|--version
+        -V)
+            echo $REVISION
+            exit $STATE_OK
+            ;;
+        --version)
+            echo $REVISION
+            exit $STATE_OK
+            ;;
+        # -h|--help
+        -h)
+            print_help
+            exit $STATE_OK
+            ;;
+        --help)
+            print_help
+            exit $STATE_OK
+            ;;
+        # -? for usage
+        "-?")
+            print_usage
+            exit $STATE_OK
+            ;;
+        # -f <socket_file>
+        -f)
+            shift
+            NC_OPTS="-U $1"
+            if [ ! -e $1 ]; then
+                echo "ERROR: Socket file not found...\n"
+                exit $STATE_CRITICAL
+            fi
+            ;;
+        # -H|--host <hostname>
+        -H)
+            shift
+            HOST=$1
+            NC_OPTS="$HOST $PORT"
+            ;;
+        --host)
+            shift
+            HOST=$1
+            NC_OPTS="$HOST $PORT"
+            ;;
+        # -p | --port <port>
+        -p)
+            shift
+            PORT=$1
+            NC_OPTS="$HOST $PORT"
+            ;;
+        --port)
+            shift
+            PORT=$1
+            NC_OPTS="$HOST $PORT"
+            ;;
+        *)
+            echo "ERROR: Unknown argument: $1"
+            echo
+            print_usage
+            exit $STATE_UNKNOWN
+            ;;
+    esac
+    shift
+done
+
+REQUEST="GET /info HTTP/1.1\r\n"
+echo -e $REQUEST | $NC $NC_OPTS
+RC=$?
+echo
+if [ $RC -ne 0 ]; then
+    echo ERROR: $REQUEST -- returned $RC
+    exit $RC
+fi
+
