@@ -18,7 +18,12 @@ print_usage() {
 }
 
 print_help() {
+    echo $PROGNAME $VERSION
+    echo
     print_usage
+    echo
+    echo Docker plugin for Nagios
+    echo
 }
 
 # defaults
@@ -29,7 +34,7 @@ HOST="localhost"
 while test -n "$1"; do
     case "$1" in
         --help)
-            print_usage
+            print_help
             exit $STATE_OK
             ;;
         "-?")
@@ -47,18 +52,25 @@ while test -n "$1"; do
             ;;
         --port)
             shift
-            echo $1
             PORT=$1
             NC_OPTS="$HOST $PORT"
             ;;
         *)
-            echo "Unknown argument: $1"
+            echo "ERROR: Unknown argument: $1"
+            echo
+            print_usage
             exit $STATE_UNKNOWN
             ;;
     esac
     shift
 done
 
-echo $HOST $PORT $NC_OPTS
-echo -e "GET /info HTTP/1.1\r\n" | $NC $NC_OPTS
+REQUEST="GET /info HTTP/1.1\r\n"
+echo -e $REQUEST | $NC $NC_OPTS
+RC=$?
 echo
+if [ $RC -ne 0 ]; then
+    echo ERROR: $REQUEST -- returned $RC
+    exit $RC
+fi
+
