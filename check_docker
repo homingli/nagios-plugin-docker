@@ -10,26 +10,24 @@ STATE_WARNING=1
 STATE_CRITICAL=2
 STATE_UNKNOWN=3
 
+NC="/bin/nc"
+ECHO="/bin/echo"
+
 PROGNAME=`/usr/bin/basename $0`
-PROGPATH=`echo $0 | sed -e 's,[\\/][^\\/][^\\/]*$,,'`
+PROGPATH=`$ECHO $0 | sed -e 's,[\\/][^\\/][^\\/]*$,,'`
 REVISION="0.0.1"
 
-NC="/bin/nc"
 
 print_usage() {
-    echo "Usage: $PROGNAME [-H|--host <host>] [-p|--port <port>]"
-    echo "Usage: $PROGNAME [-f <socket_file>]"
-    echo "Usage: $PROGNAME [-h|--help] [-?] [-V|--version]"
-    echo
+    $ECHO "Usage: $PROGNAME [-H|--host <host>] [-p|--port <port>]"
+    $ECHO "Usage: $PROGNAME [-f <socket_file>]"
+    $ECHO -e "Usage: $PROGNAME [-h|--help] [-?] [-V|--version]\n"
 }
 
 print_help() {
-    echo $PROGNAME $REVISION
-    echo
+    $ECHO -e "$PROGNAME $REVISION \n"
     print_usage
-    echo
-    echo Docker plugin for Nagios
-    echo
+    $ECHO -e "Docker plugin for Nagios \n"
 }
 
 # defaults
@@ -37,15 +35,27 @@ NC_OPTS="-U /var/run/docker.sock"
 PORT=4243
 HOST="localhost"
 
+## main ##
+
+# necessary? detects for a speicfic user (root? nagios?)
+# or do we expect docker users to allow anyone to call the remote API (security implications)
+
+if [ `id -u` -ne 0 ]; then
+    $ECHO "non-root user detected. please run this script as root."
+    exit $STATE_WARNING
+fi
+
+# parse arguments
+
 while test -n "$1"; do
     case "$1" in
         # -V|--version
         -V)
-            echo $REVISION
+            $ECHO $REVISION
             exit $STATE_OK
             ;;
         --version)
-            echo $REVISION
+            $ECHO $REVISION
             exit $STATE_OK
             ;;
         # -h|--help
@@ -67,7 +77,7 @@ while test -n "$1"; do
             shift
             NC_OPTS="-U $1"
             if [ ! -e $1 ]; then
-                echo "ERROR: Socket file not found...\n"
+                $ECHO "ERROR: Socket file not found..."
                 exit $STATE_CRITICAL
             fi
             ;;
@@ -94,8 +104,7 @@ while test -n "$1"; do
             NC_OPTS="$HOST $PORT"
             ;;
         *)
-            echo "ERROR: Unknown argument: $1"
-            echo
+            $ECHO "ERROR: Unknown argument: $1"
             print_usage
             exit $STATE_UNKNOWN
             ;;
@@ -103,12 +112,15 @@ while test -n "$1"; do
     shift
 done
 
+# make request to socket (or to tcp netaddr)
+# not able to easily retrieve response status_code
+
 REQUEST="GET /info HTTP/1.1\r\n"
-echo -e $REQUEST | $NC $NC_OPTS
+$ECHO -e $REQUEST | $NC $NC_OPTS
 RC=$?
-echo
+
 if [ $RC -ne 0 ]; then
-    echo ERROR: $REQUEST -- returned $RC
+    $ECHO "ERROR: request '${REQUEST}' -- returned $RC"
     exit $RC
 fi
 

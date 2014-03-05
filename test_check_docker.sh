@@ -29,3 +29,7 @@ $CHECK_DOCKER --host localhost --port 4243
 
 test_header "SOCKET FILE: /var/run/docker.sock"
 $CHECK_DOCKER -f /var/run/docker.sock
+
+test_header "ERRORS..."
+$CHECK_DOCKER -f /file/does/not/exist
+$CHECK_DOCKER --port 4321
