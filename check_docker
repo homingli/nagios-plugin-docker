@@ -1,8 +1,6 @@
 #!/bin/bash
 
 # TODO
-# - check response code 200/500
-# - check id is has root permission
 # - return data as performance data
 
 STATE_OK=0
@@ -12,6 +10,9 @@ STATE_UNKNOWN=3
 
 NC="/bin/nc"
 ECHO="/bin/echo"
+GREP="/bin/grep"
+SED="/bin/sed"
+CUT="/usr/bin/cut"
 
 PROGNAME=`/usr/bin/basename $0`
 PROGPATH=`$ECHO $0 | sed -e 's,[\\/][^\\/][^\\/]*$,,'`
@@ -33,7 +34,7 @@ print_help() {
 # defaults
 NC_OPTS="-U /var/run/docker.sock"
 PORT=4243
-HOST="localhost"
+HOST=localhost
 
 ## main ##
 
@@ -51,11 +52,11 @@ while test -n "$1"; do
     case "$1" in
         # -V|--version
         -V)
-            $ECHO $REVISION
+            $ECHO "$REVISION"
             exit $STATE_OK
             ;;
         --version)
-            $ECHO $REVISION
+            $ECHO "$REVISION"
             exit $STATE_OK
             ;;
         # -h|--help
@@ -116,11 +117,47 @@ done
 # not able to easily retrieve response status_code
 
 REQUEST="GET /info HTTP/1.1\r\n"
-$ECHO -e $REQUEST | $NC $NC_OPTS
-RC=$?
 
-if [ $RC -ne 0 ]; then
-    $ECHO "ERROR: request '${REQUEST}' -- returned $RC"
-    exit $RC
+# execute the request with the appropriate options, and strip the brackets
+RES=`$ECHO -e ${REQUEST} | $NC $NC_OPTS | $SED 's/\r/\n/g'`
+
+#grep the json output only (stripped header)
+JSON_RES=`$ECHO "$RES" | $GREP "{" | $SED 's/[{}]//g'`
+
+# output for debugging
+# echo "$RES"
+
+# status code check
+if [[ "$RES" =~ 500 ]]; then
+    $ECHO "CRITICAL ERROR: request '${REQUEST}' -- returned 500"
+    $ECHO "Internal Server Error"
+    exit $STATE_CRITICAL
+elif [[ "$RES" =~ 404 ]]; then
+    $ECHO "CRITICAL ERROR: request '${REQUEST}' -- returned 404"
+    $ECHO "Please check your request"
+    exit $STATE_CRITICAL
+elif ! [[ "$RES" =~ 200 ]]; then
+    $ECHO "UNKNOWN ERROR from request '${REQUEST}'"
+    if test -n "$RES"; then
+      $ECHO "Full Response from request:"
+      $ECHO "$RES"
+    else
+      $ECHO "Empty response, please check your HOSTNAME:PORT"
+    fi
+    exit $STATE_UNKOWN
 fi
+
+# get key-value from position X of comma separated response
+get_kv() {
+    $ECHO `$ECHO "$JSON_RES" | $CUT -d',' -f $1`
+}
+
+get_kv 1
+get_kv 2
+get_kv 3
+get_kv 4
+get_kv 5
+get_kv 6
+get_kv 7
+get_kv 8
 
