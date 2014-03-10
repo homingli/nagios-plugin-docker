@@ -144,7 +144,7 @@ elif ! [[ "$RES" =~ 200 ]]; then
     else
       $ECHO "Empty response, please check your HOSTNAME:PORT"
     fi
-    exit $STATE_UNKOWN
+    exit $STATE_UNKNOWN
 fi
 
 # parses JSON response into dictionary
