@@ -147,17 +147,19 @@ elif ! [[ "$RES" =~ 200 ]]; then
     exit $STATE_UNKOWN
 fi
 
-# get key-value from position X of comma separated response
-get_kv() {
-    $ECHO `$ECHO "$JSON_RES" | $CUT -d',' -f $1`
-}
+# parses JSON response into dictionary
+declare -A DICT
+for i in `seq 1 8`; do
+    tmp=`$ECHO "$JSON_RES" | $CUT -d',' -f $i`
+    DICT[`$ECHO $tmp | $CUT -d':' -f 1 | $SED 's:"::g'`]=`$ECHO $tmp | $CUT -d':' -f 2`
+    unset tmp
+done
 
-get_kv 1
-get_kv 2
-get_kv 3
-get_kv 4
-get_kv 5
-get_kv 6
-get_kv 7
-get_kv 8
+$ECHO ${DICT[Debug]}
+$ECHO ${DICT[Images]}
+
+# DEBUG output all key vals
+#for key in ${!DICT[@]}; do
+#    echo ${key} ${DICT[${key}]}
+#done
 
