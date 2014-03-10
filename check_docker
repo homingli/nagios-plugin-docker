@@ -155,11 +155,33 @@ for i in `seq 1 8`; do
     unset tmp
 done
 
-$ECHO ${DICT[Debug]}
-$ECHO ${DICT[Images]}
-
 # DEBUG output all key vals
 #for key in ${!DICT[@]}; do
 #    echo ${key} ${DICT[${key}]}
 #done
+
+# output as performance data
+#   'label'=value[UOM];[warn];[crit];[min];[max]  space separated
+
+    DATA_LABEL="Images"
+    DATA_WARN="8"
+    DATA_CRIT="9"
+    DATA_MIN="1"
+    DATA_MAX="10"
+
+    $ECHO -e "Images ${DICT[Images]}|[$DATA_LABEL]=${DICT[Images]};$DATA_WARN;$DATA_CRIT;$DATA_MIN;$DATA_MAX "; 
+
+    # boundary checks
+    if [ ${DICT[Images]} -le ${DATA_MIN} ] ; then
+        exit $STATE_CRITICAL
+    elif [ ${DICT[Images]} -ge ${DATA_MAX} ] ; then
+        exit $STATE_CRITICAL
+    # crit or warn?
+    elif [ ${DICT[Images]} -ge ${DATA_CRIT} ] ; then
+        exit $STATE_CRITICAL
+    elif [ ${DICT[Images]} -ge ${DATA_WARN} ] ; then
+        exit $STATE_WARNING
+    fi
+    # everything okay
+    exit $STATE_OK
 
