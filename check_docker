@@ -32,19 +32,21 @@ print_help() {
 }
 
 # defaults
-NC_OPTS="-U /var/run/docker.sock"
+#NC_OPTS="-U /var/run/docker.sock"
 PORT=4243
 HOST=localhost
+NC_OPTS="$HOST $PORT"
 
 ## main ##
 
 # necessary? detects for a speicfic user (root? nagios?)
 # or do we expect docker users to allow anyone to call the remote API (security implications)
 
-if [ `id -u` -ne 0 ]; then
-    $ECHO "non-root user detected. please run this script as root."
-    exit $STATE_WARNING
-fi
+#if [ `id -u` -ne 0 ]; then
+#    $ECHO "non-root user detected. please run this script as root."
+#    exit $STATE_WARNING
+#fi
+
 
 # parse arguments
 
